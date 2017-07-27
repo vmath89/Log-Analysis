@@ -1,82 +1,80 @@
-#! Python3
+#!/usr/bin/python3
 import psycopg2
 from datetime import datetime
 
+""" This function searches for the 3 most popular articles which have been
+accessed and presents this list information with the
+most popular article on the top.
 """
-    This function searches for the 3 most popular articles which have been
-    accessed and presents this list information with the
-    most popular article on the top.
-"""
+
+
 def popular_articles():
     conn = psycopg2.connect("dbname=news")
     cursor = conn.cursor()
     cursor.execute(
-        'Select title, count(*) as count '
-        'from articles, log '
-        'where log.path like concat(\'%\', articles.slug) '
-        'group by title '
-        'order by count limit 3')
+        'SELECT title, count(*) AS views '
+        'FROM articles, log '
+        'WHERE log.path = concat(\'/article/\', articles.slug) '
+        'GROUP BY title '
+        'ORDER BY views DESC LIMIT 3')
     result = cursor.fetchall()
     print('Most popular 3 articles:')
     for row in result:
-        print('\"' + row[0] + '\"' + ' — ' + str(row[1]) + ' views')
+        print('     \"' + row[0] + '\"' + ' — ' + str(row[1]) + ' views')
     conn.close()
+    ask_for_more_report()
 
 
+""" This function searches for the authors who gets the most page
+views and present this as a sorted list with the
+most popular author at the top.
 """
-    This function searches for the authors who gets the most page
-    views and present this as a sorted list with the
-    most popular author at the top.
-"""
+
+
 def popular_authors():
     conn = psycopg2.connect("dbname=news")
     cursor = conn.cursor()
     cursor.execute(
-        'Select name, count(*) as count '
-        'from articles, log, authors '
-        'where authors.id = articles.author '
-        'and log.path like concat(\'%\', articles.slug) '
-        'group by name '
-        'order by count desc')
+        'SELECT name, count(*) AS count '
+        'FROM articles, log, authors '
+        'WHERE authors.id = articles.author '
+        'AND log.path = concat(\'/article/\', articles.slug) '
+        'GROUP BY name '
+        'ORDER BY count DESC')
     result = cursor.fetchall()
     print('Most popular article authors of all time:')
     for row in result:
-        print(row[0] + ' — ' + str(row[1]) + 'views')
+        print('     ' + row[0] + ' — ' + str(row[1]) + ' views')
     conn.close()
+    ask_for_more_report()
 
 
+""" This function prints the days on which more than 1%
+of the requests lead to errors.
 """
-    This function prints the days on which more than 1%
-    of the requests lead to errors.
-"""
+
+
 def most_error():
     conn = psycopg2.connect("dbname=news")
     cursor = conn.cursor()
     cursor.execute(
-        'select date(time) as date, count(*) as count, status '
-        'from log where status=\'404 NOT FOUND\' '
-        'or status=\'200 OK\' '
-        'group by date, status '
-        'order by date desc')
+        'select date, error_percentage from'
+        '(select date(time) as date, '
+        '100.0 * sum(case when status != \'200 OK\' then 1 else 0 end) /'
+        'count(*) as error_percentage '
+        'from log '
+        'group by date(time) '
+        'order by date(time)) as daily_error_rates '
+        'where error_percentage > 1')
     result = cursor.fetchall()
-    # This will get the status 200 OK and status 404 NOT FOUND rows
-    # alternating for each date.
-    for i in range(0, len(result) - 1, 2):
-        OK_requests = result[i][1]
-        # Moving to the next row returned by the database because the next row
-        # is status 404 NOT FOUND row.
-        i += 1
-        ERROR_requests = result[i][1]
-        # Finding the total number of requests for any day.
-        total_requests = OK_requests + ERROR_requests
-        percentage = (ERROR_requests / total_requests) * 100
-        if percentage > 1:
-            # Converting the date format from yyyy-mm-dd to name-of-month
-            # date-of-month, year format.
-            d = datetime.strptime(str(result[i][0]), "%Y-%m-%d")
-            print(d.strftime("%B %d, %Y") + ' — ' + '%.2f' %
-                  percentage + '% errors')
+    # Converting the date format from yyyy-mm-dd to name-of-month
+    # date-of-month, year format.
+    for row in result:
+        d = datetime.strptime(str(row[0]), "%Y-%m-%d")
+        print('     ' + d.strftime("%B %d, %Y") + ' — ' + '%.2f' %
+              row[1] + '% errors')
     conn.close()
+    ask_for_more_report()
 
 
 def options():
@@ -89,7 +87,7 @@ def options():
           'more than 1 % of the requests lead to error.')
 
     print('Press 4 for exit.\n')
-    option = int(input("Waiting for your input - "))
+    option = int(input("Waiting for your input — "))
     if option == 1:
         print('Processing... Please wait...')
         popular_articles()
@@ -101,6 +99,18 @@ def options():
         most_error()
     if option == 4:
         exit(0)
+
+
+def ask_for_more_report():
+    while True:
+        print('')
+        more_report = input('Do you want to look at some more reports (Y/N)?')
+        if more_report == 'Y' or more_report == 'y':
+            options()
+        elif more_report == 'N' or more_report == 'n':
+            exit(0)
+        else:
+            print('I did not understand the input.. Please enter a valid input.')
 
 
 options()
