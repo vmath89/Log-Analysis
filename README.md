@@ -20,5 +20,5 @@ To start the reporting tool, run the following command:
 ```
 python3 news.py
 ```
-The program is interactive and will prompt the user to enter a number whose value determines which of the report sections will be generated, o rif the program needs to exit.
+The program is interactive and will prompt the user to enter a number whose value determines which of the report sections will be generated, or if the program needs to exit.
 
