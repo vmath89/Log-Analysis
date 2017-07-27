@@ -110,7 +110,8 @@ def ask_for_more_report():
         elif more_report == 'N' or more_report == 'n':
             exit(0)
         else:
-            print('I did not understand the input.. Please enter a valid input.')
+            print('I did not understand the input.. '
+                  'Please enter a valid input.')
 
 
 options()
